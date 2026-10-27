@@ -1,60 +1,49 @@
 # Document Intelligence & RAG API
 
-A learning project that lets you upload text-based PDF documents and ask questions about them. It uses OpenAI embeddings, persistent ChromaDB storage, and an LLM to generate answers grounded in retrieved passages with source references.
+A learning project that lets users upload text-based PDF documents and ask questions about them. It uses local Ollama models for embeddings and answer generation, and persistent ChromaDB storage for document passages.
 
-> **Status:** Learning project. Test the application and its setup instructions before describing features as working.
+> **Status:** Educational prototype. Run and test the project before describing features as working.
 
 ## Features
 
-- Upload PDF documents through a FastAPI endpoint.
-- Extract text and preserve the filename and page number.
-- Split document text into overlapping chunks.
-- Generate embeddings with OpenAI.
-- Store chunks and embeddings persistently in ChromaDB.
-- Retrieve relevant passages to answer questions.
+- Upload PDF files through a FastAPI endpoint.
+- Extract text while preserving filename and page number.
+- Split extracted text into overlapping chunks.
+- Create embeddings locally with Ollama.
+- Persist chunks and embeddings in ChromaDB.
+- Retrieve relevant passages for a question.
+- Generate answers from retrieved document passages.
 - Return source filenames, page numbers, and excerpts.
-- Respond when no relevant information is found.
-- View and test endpoints through FastAPI’s interactive API documentation.
-
-## Technology
-
-- Python
-- FastAPI
-- ChromaDB
-- OpenAI embeddings and chat completion
-- pypdf
-- Uvicorn
-
-## Project structure
-
-```text
-document-intelligence-rag/
-├── app/
-│   └── main.py
-├── chroma_db/              # Created locally; do not commit
-├── .env                    # Local secrets; do not commit
-├── .env.example
-├── .gitignore
-├── requirements.txt
-└── README.md
-```
+- Report when no relevant passage is found.
+- Requires no OpenAI API key or paid API call.
 
 ## Requirements
 
 - Python 3.10 or newer.
-- An OpenAI API key.
-- Internet access when calling the OpenAI API.
+- [Ollama](https://ollama.com/) installed and running.
+- Enough memory and disk space for the selected local models.
 
-## Setup
+## Install local models
 
-Clone the repository and enter its folder:
+Start Ollama, then download the models:
+
+```bash
+ollama pull llama3.2
+ollama pull nomic-embed-text
+```
+
+The chat model generates answers. The embedding model converts document passages and questions into vectors for retrieval.
+
+## Install the project
+
+Clone the repository:
 
 ```bash
 git clone https://github.com/YOUR-USERNAME/document-intelligence-rag.git
 cd document-intelligence-rag
 ```
 
-Create and activate a virtual environment:
+Create and activate a Python virtual environment:
 
 ```bash
 python -m venv .venv
@@ -78,21 +67,9 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Set your OpenAI API key as an environment variable.
+## Run the API
 
-Linux or macOS:
-
-```bash
-export OPENAI_API_KEY="your-key-here"
-```
-
-Windows PowerShell:
-
-```powershell
-$env:OPENAI_API_KEY="your-key-here"
-```
-
-Start the API:
+Make sure Ollama is running, then start the API:
 
 ```bash
 uvicorn app.main:app --reload
@@ -104,39 +81,23 @@ Open the interactive API documentation:
 http://127.0.0.1:8000/docs
 ```
 
-Never commit a real API key. The `.env.example` file should contain placeholders only.
+## Use the API
 
-## API usage
-
-### Health check
+### Check service status
 
 ```http
 GET /health
 ```
 
-Returns API status, indexed chunk count, and vector-store name.
-
 ### Upload a PDF
 
-Use `POST /documents` in `/docs` and select a text-based PDF. The API extracts text, creates chunks and embeddings, and stores them in ChromaDB.
+Use `POST /documents` in `/docs` and upload a text-based PDF. The API extracts text, creates embeddings, and stores passages in ChromaDB.
 
-Example response:
-
-```json
-{
-  "filename": "sample-guide.pdf",
-  "pages": 5,
-  "chunks_added": 12,
-  "total_indexed_chunks": 12,
-  "storage": "chroma_db"
-}
-```
-
-The exact values depend on the uploaded document and local configuration.
+Scanned PDFs may not contain extractable text and are not supported unless OCR is added.
 
 ### Ask a question
 
-Use `POST /questions` with a JSON body:
+Use `POST /questions` with:
 
 ```json
 {
@@ -144,62 +105,51 @@ Use `POST /questions` with a JSON body:
 }
 ```
 
-The response includes an answer and source details when relevant passages are retrieved.
+The response includes an answer and retrieved source excerpts.
 
 ## Persistent storage
 
-ChromaDB stores its local index in the `chroma_db/` directory. The index should remain available after restarting the server, provided that directory is preserved.
-
-The database is local development data and should not normally be committed to GitHub. To use another storage path, set the `CHROMA_DB_PATH` environment variable.
+ChromaDB stores its local index in `chroma_db/`. The index persists across API restarts as long as the folder remains. This folder is local data and is excluded from Git with `.gitignore`.
 
 ## Configuration
 
-The app uses:
+Optional settings can be provided as environment variables:
 
 ```text
-OPENAI_API_KEY=your_key_here
 CHROMA_DB_PATH=chroma_db
+OLLAMA_URL=http://localhost:11434
+OLLAMA_CHAT_MODEL=llama3.2
+OLLAMA_EMBED_MODEL=nomic-embed-text
 ```
 
-`CHROMA_DB_PATH` is optional. Do not put real credentials in tracked files.
-
-## Data and privacy
-
-Use only documents you are allowed to upload and process. Avoid confidential, personal, or sensitive documents in this demo. Uploaded document text is sent to the configured embedding and language-model provider.
+See `.env.example` for placeholder configuration. Do not commit secrets or private documents.
 
 ## Limitations
 
-- The project is an educational prototype, not a production document-management service.
-- The vector index is local to the machine and is not configured for multiple users.
-- The index is not automatically cleared or partitioned by user.
-- Scanned PDFs may need OCR because text extraction alone may not read images.
-- Retrieval thresholds and chunk sizes are basic demo settings and need evaluation.
-- LLM answers can be incorrect; verify them against the cited passages.
-- Authentication, authorization, upload-size limits, and production monitoring are not included.
+- Local models need suitable computer resources and can be slower than hosted services.
+- The index is local and is not configured for multiple users.
+- There is no authentication or access control.
+- Scanned PDFs require OCR, which is not included.
+- Retrieval settings are basic and have not been benchmarked.
+- Model answers may be incorrect; verify them using the cited excerpts.
+- This is a learning prototype, not a production document-management system.
+
+## Privacy and safety
+
+Documents and prompts are processed by the local Ollama service configured by the user. Use documents you are allowed to process. Do not upload confidential documents to a public repository. Review your local Ollama setup and network exposure before using sensitive files.
 
 ## Tests
 
-Automated tests should be added for document extraction, chunking, persistent indexing, retrieval, citations, and error cases. Add test instructions here after the test suite exists and has been run successfully.
-
-## Future improvements
-
-- Add automated tests and a GitHub Actions workflow.
-- Add file-size limits and stronger document validation.
-- Add OCR for scanned PDFs.
-- Evaluate chunking and retrieval settings on a test dataset.
-- Add document deletion and index management.
-- Add authentication and access controls before supporting multiple users.
-- Add Docker packaging after verifying local operation.
-- Add logging and latency measurement without recording sensitive document contents.
+Automated tests are planned for PDF extraction, chunking, persistent indexing, retrieval, citations, and API error handling. Add exact test instructions after implementing and running the test suite.
 
 ## Inspiration and attribution
 
-This is a learning project. Credit and comply with the licenses of any third-party code, data, or assets used. Do not copy a repository and present it as independently created.
+This is an independent learning project. Credit and comply with licenses for any third-party code, documentation, data, or assets used.
 
 ## Resume description
 
-After you have run and tested the project, describe only what you personally implemented. For example:
+After implementing and testing the project, describe only what you personally verified. Example:
 
-> Built a FastAPI document Q&A prototype using PDF extraction, OpenAI embeddings, persistent ChromaDB storage, and source-referenced answers.
+> Built a FastAPI document-Q&A prototype using local Ollama models, PDF text extraction, persistent ChromaDB storage, and source-referenced answers.
 
-Only use this wording if those features work in your version. Do not claim production deployment, security certification, or measured accuracy without evidence.
+Only list technologies and results that you actually used and tested.
